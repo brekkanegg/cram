@@ -159,35 +159,3 @@ def image_mask_random_crop(image, image_size):
 
     return image_mask_dict
 
-
-
-
-#todo: later
-# def inputs_classification(data_dir, image_size, batch_size, num_threads, mode='train'):
-#
-#     data_format = 'jpg'
-#     if data_dir == 'svhn':
-#         data_format = 'png'
-#
-#     # fixme: 상대경로
-#     if mode == 'train':
-#         paths = os.path.join('Development/mk/cram/data', data_dir, 'train/*.' + data_format)
-#
-#     else:
-#         paths = os.path.join('Development/mk/cram/data', data_dir, 'test/*.' + data_format)
-#
-#     data_count = len(glob(paths))
-#
-#     filenames = tf.train.match_filenames_once(paths)
-#     dataset = tf.data.Dataset.from_tensor_slices(filenames)
-#     dataset = dataset.map(lambda x: image_mask_central_crop(x, image_size), num_threads)
-#
-#     dataset = dataset.batch(batch_size)
-#     dataset.repeat()
-#
-#     iterator = tf.contrib.data.Iterator.from_structure(dataset.output_types, dataset.output_shapes)
-#     next_element = iterator.get_next()
-#     init_op = iterator.make_initializer(dataset)
-#
-#     return next_element, init_op, data_count
-
