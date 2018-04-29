@@ -1,2 +1,5 @@
-# cram
-conditional recurrent attention model in tensorflow
+# CRAM
+Clued Recurrent Attention Model in tensorflow
+
+Work in progress (70%)
+
