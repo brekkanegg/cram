@@ -69,7 +69,7 @@ class CRAM(object):
         # initial context
         context = context_net(self.masked_image, self.mask, self.is_training, reuse=False)  # lstm_state_tuple: (c,h)
         # theta_input = emission_net(context.h, self.is_training, reuse=False)
-        glimpse, theta, mytransformer = st_net(self.masked_image, self.mask, context.h, self.is_training, reuse=False)
+        glimpse, theta = st_net(self.masked_image, self.masked_image, context.h, self.is_training, reuse=False)
 
         glimpse_patch = tf.nn.sigmoid(glimpse)
         glimpse_patch = tf.image.convert_image_dtype(glimpse_patch, dtype=tf.float32)  #
@@ -77,15 +77,12 @@ class CRAM(object):
         self.glimpses = []  # glimpse 총 숫자는 지정한 glimpse_num + 1(처음 glimpse)
         self.glimpses.append(glimpse_patch)  # initial glimpse
 
-        mask_glimpse = mytransformer(U=self.mask, theta=theta, out_size=[self.image_size, self.image_size], reuse=True)
-        mask_glimpse_patch = tf.nn.sigmoid(mask_glimpse)
-        mask_glimpse_patch = tf.image.convert_image_dtype(mask_glimpse_patch, dtype=tf.float32)  #
+        #fixme
+        glimpse_vec = glimpse_net(glimpse, theta, self.is_training, reuse=False)  # initial glimpse
 
         # fixme
         self.glimpse_condition_correlation = []
-        self.glimpse_condition_correlation.append(mask_glimpse_patch)
-
-        glimpse_vec = glimpse_net(glimpse, theta, self.is_training, reuse=False)  # initial glimpse
+        # self.glimpse_condition_correlation.append(mask_glimpse_patch)
 
         # core rnn
         lstm_1 = None
@@ -101,12 +98,12 @@ class CRAM(object):
                 reuse = True
 
             # fixme:
-            lstm_1, lstm_2, glimpse_vec, glimpse_patch, mask_glimpse_patch = core_rnn(
+            lstm_1, lstm_2, glimpse_vec, glimpse_patch = core_rnn(
                 self.masked_image, self.mask, glimpse_vec, lstm_1, lstm_2, is_first, self.is_training, reuse)
             self.glimpses.append(glimpse_patch)
 
             #fixme:
-            self.glimpse_condition_correlation.append(mask_glimpse_patch)
+            # self.glimpse_condition_correlation.append(mask_glimpse_patch)
 
         # solution = solution_net(lstm_1.outputs, self.is_training, reuse=False)
         # remove solution network
@@ -343,8 +340,7 @@ class ContextNetwork(object):
         return context
 
 # define my own spatial transformer network based on SpatialTransformer2dAffineLayer
-# from tensorlayer import Layer
-from transformer import transformer
+from tensorlayer import Layer, transformer
 
 class MySpatialTransformerNetwork(object):
     """The :class:`SpatialTransformer2dAffineLayer` class is a
@@ -448,8 +444,7 @@ class MySpatialTransformerNetwork(object):
 
             ## 3. Spatial Transformer Sampling
             # 3.1 transformation
-            self.transformer = transformer()
-            self.outputs = self.transformer(U=self.inputs, theta=self.theta, out_size=self.out_size, reuse=reuse)
+            self.outputs = transformer(self.inputs, self.theta, out_size=self.out_size)
             # 3.2 automatically set batch_size and channels
             # e.g. [?, 40, 40, ?] --> [64, 40, 40, 1] or [64, 20, 20, 4]/ Hao Dong
             #
@@ -467,15 +462,10 @@ class MySpatialTransformerNetwork(object):
             # exit()
 
         # fixme
-        try:  # For TF12 and later
-            TF_GRAPHKEYS_VARIABLES = tf.GraphKeys.GLOBAL_VARIABLES
-        except:  # For TF11 and before
-            TF_GRAPHKEYS_VARIABLES = tf.GraphKeys.VARIABLES
-
         variables = tf.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)
         self.all_params = variables
 
-        return self.outputs, self.theta, self.transformer
+        return self.outputs, self.theta
 
         #     ## 4. Get all parameters
         #    variables = tf.get_collection(TF_GRAPHKEYS_VARIABLES, scope=vs.name)
@@ -684,9 +674,6 @@ class CoreRnn(object):
         :param glimpse_net:
         :return: layer
         """
-
-        self.image_size = masked_image.shape[1]
-
         print('Core RNN')
         with tf.variable_scope("corernn", reuse=reuse):
             tl.layers.set_name_reuse(reuse)
@@ -714,12 +701,10 @@ class CoreRnn(object):
                                                initial_state=lstm_2_init_state, return_seq_2d=True, name='core_lstm_2')
 
         # CHECK - be careful with indent
-        glimpse_patch, theta, mytransformer = self.st_net(masked_image, mask, lstm_2.outputs, is_training, reuse=True)
-        mask_glimpse_patch = mytransformer(mask, theta, out_size=[self.image_size, self.image_size], reuse=True)
-
+        glimpse_patch, theta = self.st_net(masked_image, mask, lstm_2.outputs, is_training, reuse=True)
         glimpse_vec = self.glimpse_net(masked_image, mask, theta, is_training, reuse=True)
 
-        return lstm_1, lstm_2, glimpse_vec, glimpse_patch, mask_glimpse_patch
+        return lstm_1, lstm_2, glimpse_vec, glimpse_patch
 
 
 # class SolutionNetwork(object):
@@ -749,24 +734,6 @@ class CoreRnn(object):
 #             solution_image = self.network
 #
 #         return solution_image
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #### Decoder
 class ClassificationNetwork(object):
