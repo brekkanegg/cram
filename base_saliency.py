@@ -9,7 +9,7 @@ import os, sys
 import numpy as np
 from glob import glob
 from PIL import Image
-from tqdm import tqdm
+# from tqdm import tqdm
 import time, datetime
 import random
 

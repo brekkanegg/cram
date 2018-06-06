@@ -151,12 +151,13 @@ class base_saliency_model():
 ################
 
 class dataloader_cifar10(object):
-    def __init__(self, batch_size, saliency=False, mode='train', reuse=False, sep=False):
+    def __init__(self, batch_size, saliency=False, mode='train', reuse=False, sep=False, x255=False):
         self.saliency = saliency
         self.mode = mode
         self.image_size = 32
         self.class_num = 10
         self.sep = sep
+        self.x255 = x255
 
         from tensorflow.python.keras._impl.keras.datasets.cifar10 import load_data
         # if mode == 'train' or mode == 'control':
@@ -205,7 +206,10 @@ class dataloader_cifar10(object):
         batch_labels = self.y[start_pos:start_pos + self.batch_size]
         if self.saliency:
             batch_saliencies = self.saliency_model.get_saliency(batch_images)
+            if x255:
+                batch_saliencies *= 255
             batch_images = np.concatenate([batch_images, batch_saliencies], axis=3)
+
 
         return batch_images, batch_labels
 
@@ -217,12 +221,13 @@ class dataloader_cifar10(object):
 ###########
 
 class dataloader_cub200(object):
-    def __init__(self, batch_size, saliency=False, mode='train', reuse=False, sep=False):
+    def __init__(self, batch_size, saliency=False, mode='train', reuse=False, sep=False, x255=False):
         self.saliency = saliency
         self.mode = mode
         self.image_size = 224
         self.class_num = 200
         self.sep = sep
+        self.x255 = x255
 
         with open('data/CUB_200_2011/images.txt', 'r') as f:
             img_dir = f.read().split('\n')
@@ -298,10 +303,14 @@ class dataloader_cub200(object):
             _temp_bs = [np.reshape(b, [self.image_size, self.image_size, 1])
                         for b in temp_bs]
             batch_saliencies = np.array(_temp_bs)
+            if self.x255:
+                batch_saliencies *= 255
             batch_images = np.concatenate([batch_images, batch_saliencies], axis=3)
 
         elif self.saliency:
             batch_saliencies = self.saliency_model.get_saliency(batch_images)
+            if self.x255:
+                batch_saliencies *= 255
             batch_images = np.concatenate([batch_images, batch_saliencies], axis=3)
 
         return batch_images, batch_labels

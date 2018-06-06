@@ -22,12 +22,14 @@ flags.DEFINE_string("dataset", "cub200", "willow, cub")
 flags.DEFINE_integer("zoption", 0, "option number")
 
 flags.DEFINE_bool("saliency", False, "false")
+flags.DEFINE_bool("x255", False, "false")
+
 
 flags.DEFINE_integer("epoch", 200, "Epoch to train [25]")
-flags.DEFINE_float("learning_rate", 1e-2, "Learning rate of for adam")
+flags.DEFINE_float("learning_rate", 1e-3, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
-flags.DEFINE_integer("batch_size", 16, "The size of batch images [32]")
+flags.DEFINE_integer("batch_size", 32, "The size of batch images [32]")
 
 flags.DEFINE_integer("max_to_keep", 5, "model number of max to keep")
 flags.DEFINE_bool("override", True, "Overriding checkpoint")
@@ -48,7 +50,6 @@ model_config = {'saliency': FLAGS.saliency,
                 'learning_rate': FLAGS.learning_rate,
                 'gt_seg': FLAGS.use_gt,
                 'zoption': FLAGS.zoption,
-
                 }
 
 model_dir = ['{}-{}'.format(key, model_config[key]) for key in sorted(model_config.keys())]
@@ -87,12 +88,12 @@ with tf.Session(config=config) as sess:
     #     train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='control')
 
     if FLAGS.use_gt:
-        train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='gt')
-        val_inputs = _dl(FLAGS.batch_size, saliency=True, mode='val', reuse=False)
+        train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='gt', x255=FLAGS.x255)
+        val_inputs = _dl(FLAGS.batch_size, saliency=True, mode='val', reuse=False, x255=FLAGS.x255)
 
     else:
-        train_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='train', reuse=False)
-        val_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='val', reuse=True)
+        train_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='train', reuse=False, x255=FLAGS.x255)
+        val_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='val', reuse=True, x255=FLAGS.x255)
 
     print('Train Data Counts: ', train_inputs.data_count)
     

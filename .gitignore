@@ -1,10 +1,6 @@
-outdated
-classification
-inpainting
 *.ipynb
 temp.jpg
 .idea
-temp
 
 # directories
 .ipynb_checkpoints
@@ -17,6 +13,7 @@ outdated
 sample
 summary
 cram
+resnet-in-tensorflow
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
