@@ -8,8 +8,9 @@ import numpy as np
 import time
 import pprint
 
-from vgg import VGG
-import inputs
+# diff
+from vgg_sep import VGG
+import inputs_sep as inputs
 
 # Parameters
 flags = tf.app.flags
@@ -18,19 +19,18 @@ flags.DEFINE_bool("is_training", True, "train/test")
 flags.DEFINE_bool("is_control", False, "false")
 flags.DEFINE_bool("use_gt", False, "use ground truth segmentation")
 
-flags.DEFINE_string("dataset", "cub200", "willow, cub")
+flags.DEFINE_string("dataset", "cifar10", "willow, cub")
+flags.DEFINE_bool("saliency", True, "false")
 flags.DEFINE_integer("zoption", 0, "option number")
 
-flags.DEFINE_bool("saliency", False, "false")
-
 flags.DEFINE_integer("epoch", 200, "Epoch to train [25]")
-flags.DEFINE_float("learning_rate", 1e-2, "Learning rate of for adam")
+flags.DEFINE_float("learning_rate", 1e-3, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
-flags.DEFINE_integer("batch_size", 16, "The size of batch images [32]")
+flags.DEFINE_integer("batch_size", 4, "The size of batch images [32]")
 
 flags.DEFINE_integer("max_to_keep", 5, "model number of max to keep")
-flags.DEFINE_bool("override", True, "Overriding checkpoint")
+flags.DEFINE_bool("override", False, "Overriding checkpoint")
 
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "sample", "save the image samples [samples]")
@@ -47,8 +47,8 @@ model_config = {'saliency': FLAGS.saliency,
                 'dataset': FLAGS.dataset,
                 'learning_rate': FLAGS.learning_rate,
                 'gt_seg': FLAGS.use_gt,
-                'zoption': FLAGS.zoption,
-
+                'sep': True,
+                'zoption': FLAGS.zoption
                 }
 
 model_dir = ['{}-{}'.format(key, model_config[key]) for key in sorted(model_config.keys())]
@@ -86,13 +86,14 @@ with tf.Session(config=config) as sess:
     # if FLAGS.is_control:
     #     train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='control')
 
+    # diff
     if FLAGS.use_gt:
-        train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='gt')
-        val_inputs = _dl(FLAGS.batch_size, saliency=True, mode='val', reuse=False)
-
+        train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='gt', sep=True)
+        val_inputs = _dl(FLAGS.batch_size, saliency=True, mode='val', reuse=False, sep=True)
+    # diff
     else:
-        train_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='train', reuse=False)
-        val_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='val', reuse=True)
+        train_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='train', reuse=False, sep=True)
+        val_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='val', reuse=True, sep=True)
 
     print('Train Data Counts: ', train_inputs.data_count)
     
@@ -154,28 +155,23 @@ Initializing a new one...
 
     batch_idxs = int(train_inputs.data_count // FLAGS.batch_size)
     for epoch in range(FLAGS.epoch):
-        # if np.mod(epoch, 10) == 1 and epoch != 1:
-        #     FLAGS.learning_rate *= 0.3
-        #     print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-        if epoch == 30:
+        if epoch == 20:
             FLAGS.learning_rate *= 1e-1
+            print('Learning Rate Decreased to: ', FLAGS.learning_rate)
+        if epoch == 40:
+            FLAGS.learning_rate *= 1e-2
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
         if epoch == 60:
-            FLAGS.learning_rate *= 1e-1
+            FLAGS.learning_rate *= 1e-3
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-        if epoch == 90:
-            FLAGS.learning_rate *= 1e-1
-            print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-
-
 
         train_inputs.shuffle()  # shuffle
         for idx in range(0, batch_idxs):
             try:
-                batch_xs, batch_ys = train_inputs.next_batch()
+                batch_xs, batch_ys, batch_ss = train_inputs.next_batch()
             except ValueError: #, FileNotFoundError):
                 train_inputs.pointer += 1
-                batch_xs, batch_ys = train_inputs.next_batch()
+                batch_xs, batch_ys, batch_ss = train_inputs.next_batch()
 
 
             ##### debugging
@@ -185,15 +181,15 @@ Initializing a new one...
             #####
 
             l, a, s, _ = sess.run([model.cross_entropy_loss, model.accuracy, model.summary_merge, model.train_op],
-                                  feed_dict={model.x: batch_xs, model.y: batch_ys, model.is_training: True,
-                                             model.learning_rate: FLAGS.learning_rate})
+                                  feed_dict={model.x: batch_xs, model.y: batch_ys, model.s: batch_ss,
+                                             model.is_training: True, model.learning_rate: FLAGS.learning_rate})
             counter += 1
 
             # print
             if np.mod(counter, print_step) == 1:
-                print("Epoch: [{:2d}] [{:4d}/{:4d}] [{:4d}] time: {:.4f}, "
+                print("Epoch: [{:2d}] [{:4d}/{:4d}] time: {:.4f}, "
                       "accuracy:  {:.4f} cls_loss: {:.6f}".format(
-                    epoch, idx, batch_idxs, counter, time.time() - start_time, a, l))
+                    epoch, idx, batch_idxs, time.time() - start_time, a, l))
 
 
             # Save model and sample image files / summary as well
@@ -210,13 +206,14 @@ Initializing a new one...
 
                     # fixme
                     try:
-                        bv_xs, bv_ys = val_inputs.next_batch()
+                        bv_xs, bv_ys, bv_ss = val_inputs.next_batch()
                     except ValueError:
                         val_inputs.pointer += 1
-                        bv_xs, bv_ys = val_inputs.next_batch()
+                        bv_xs, bv_ys, bv_ss = val_inputs.next_batch()
 
                     cl, lg, lb = sess.run([model.cross_entropy_loss, model.logits, model.y],
-                                          feed_dict={model.x: bv_xs, model.y: bv_ys, model.is_training: False})
+                                          feed_dict={model.x: bv_xs, model.y: bv_ys, model.s: bv_ss,
+                                                     model.is_training: False})
 
                     cls_loss += cl
                     predictions.extend(np.argmax(lg, 1))
@@ -251,6 +248,4 @@ Initializing a new one...
                     # if stop_stack == 100:
                     #     sys.exit("Stop Training! Iteration: {} Time Spent: {}".format(counter, time.time() - start_time))
 
-
     print('Training finished')
-    pprint.pprint(model_config)

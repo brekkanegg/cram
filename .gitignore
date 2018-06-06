@@ -1,7 +1,22 @@
 outdated
+classification
+inpainting
 *.ipynb
 temp.jpg
 .idea
+temp
+
+# directories
+.ipynb_checkpoints
+checkpoint
+base_saliency/summary
+checkpoint
+data
+inpainting
+outdated
+sample
+summary
+cram
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
