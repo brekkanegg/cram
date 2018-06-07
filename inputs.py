@@ -206,7 +206,7 @@ class dataloader_cifar10(object):
         batch_labels = self.y[start_pos:start_pos + self.batch_size]
         if self.saliency:
             batch_saliencies = self.saliency_model.get_saliency(batch_images)
-            if x255:
+            if self.x255:
                 batch_saliencies *= 255
             batch_images = np.concatenate([batch_images, batch_saliencies], axis=3)
 

@@ -25,14 +25,14 @@ flags.DEFINE_bool("saliency", False, "false")
 flags.DEFINE_bool("x255", False, "false")
 
 
-flags.DEFINE_integer("epoch", 200, "Epoch to train [25]")
+flags.DEFINE_integer("epoch", 500, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 1e-3, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
 flags.DEFINE_integer("batch_size", 32, "The size of batch images [32]")
 
 flags.DEFINE_integer("max_to_keep", 5, "model number of max to keep")
-flags.DEFINE_bool("override", True, "Overriding checkpoint")
+flags.DEFINE_bool("override", False, "Overriding checkpoint")
 
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "sample", "save the image samples [samples]")
@@ -57,7 +57,6 @@ model_dir = '/'.join(model_dir)
 print('CONFIG: ')
 pprint.pprint(model_config)
 print('Override: ', FLAGS.override)
-
 FLAGS.checkpoint_dir = os.path.join(FLAGS.checkpoint_dir, model_dir)
 FLAGS.sample_dir = os.path.join(FLAGS.sample_dir, model_dir)
 FLAGS.summary_dir = os.path.join(FLAGS.summary_dir, model_dir)
@@ -158,13 +157,13 @@ Initializing a new one...
         # if np.mod(epoch, 10) == 1 and epoch != 1:
         #     FLAGS.learning_rate *= 0.3
         #     print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-        if epoch == 30:
+        if epoch == 100:
             FLAGS.learning_rate *= 1e-1
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-        if epoch == 60:
+        if epoch == 200:
             FLAGS.learning_rate *= 1e-1
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-        if epoch == 90:
+        if epoch == 300:
             FLAGS.learning_rate *= 1e-1
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
 

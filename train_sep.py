@@ -30,7 +30,7 @@ flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 flags.DEFINE_integer("batch_size", 4, "The size of batch images [32]")
 
 flags.DEFINE_integer("max_to_keep", 5, "model number of max to keep")
-flags.DEFINE_bool("override", False, "Overriding checkpoint")
+flags.DEFINE_bool("override", True, "Overriding checkpoint")
 
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "sample", "save the image samples [samples]")
@@ -155,14 +155,14 @@ Initializing a new one...
 
     batch_idxs = int(train_inputs.data_count // FLAGS.batch_size)
     for epoch in range(FLAGS.epoch):
-        if epoch == 20:
+        if epoch == 100:
             FLAGS.learning_rate *= 1e-1
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-        if epoch == 40:
-            FLAGS.learning_rate *= 1e-2
+        if epoch == 200:
+            FLAGS.learning_rate *= 1e-1
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
-        if epoch == 60:
-            FLAGS.learning_rate *= 1e-3
+        if epoch == 300:
+            FLAGS.learning_rate *= 1e-1
             print('Learning Rate Decreased to: ', FLAGS.learning_rate)
 
         train_inputs.shuffle()  # shuffle
