@@ -30,7 +30,7 @@ flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 flags.DEFINE_integer("batch_size", 4, "The size of batch images [32]")
 
 flags.DEFINE_integer("max_to_keep", 5, "model number of max to keep")
-flags.DEFINE_bool("override", True, "Overriding checkpoint")
+flags.DEFINE_bool("override", False, "Overriding checkpoint")
 
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "sample", "save the image samples [samples]")
@@ -151,6 +151,7 @@ Initializing a new one...
 
     # fixme: feed_dict
     min_val_loss = np.inf
+    max_val_acc = 0
     stop_stack = 0
 
     batch_idxs = int(train_inputs.data_count // FLAGS.batch_size)
@@ -234,13 +235,15 @@ Initializing a new one...
 
                 if cls_loss < min_val_loss:
                     min_val_loss = cls_loss
+                    max_val_acc = val_acc
                     saver.save(sess, FLAGS.checkpoint_dir + '/{}.ckpt'.format(model.model_name))
                     print('Model saved at: {}/{}.ckpt'.format(FLAGS.checkpoint_dir, model.model_name))
                     pprint.pprint(model_config)
                 else:
-                    if a > val_acc + 0.15: ## overfitting
+                    if a > max_val_acc + 0.15: ## overfitting
                         sys.exit(
-                            "Stop Training! Iteration: {} Time Spent: {:.4f}".format(counter, time.time() - start_time))
+                            "Stop Training! Max Val Acc: {} Iteration: {} Time Spent: {:.4f}"
+                                .format(max_val_acc, counter, time.time() - start_time))
 
                     # stop_stack += 1
                     # print('Stop Stack: {}/100, Iterations: {}'.format(stop_stack, counter))

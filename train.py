@@ -150,6 +150,7 @@ Initializing a new one...
 
     # fixme: feed_dict
     min_val_loss = np.inf
+    max_val_acc = 0
     stop_stack = 0
 
     batch_idxs = int(train_inputs.data_count // FLAGS.batch_size)
@@ -237,13 +238,14 @@ Initializing a new one...
 
                 if cls_loss < min_val_loss:
                     min_val_loss = cls_loss
+                    max_val_acc = val_acc
                     saver.save(sess, FLAGS.checkpoint_dir + '/{}.ckpt'.format(model.model_name))
                     print('Model saved at: {}/{}.ckpt'.format(FLAGS.checkpoint_dir, model.model_name))
                     pprint.pprint(model_config)
                 else:
-                    if a > val_acc + 0.15: ## overfitting
-                        sys.exit(
-                            "Stop Training! Iteration: {} Time Spent: {:.4f}".format(counter, time.time() - start_time))
+                    if a > max_val_acc + 0.15: ## overfitting
+                        sys.exit("Stop Training! Max Val Acc: {} Iteration: {} Time Spent: {:.4f}"
+                                 .format(max_val_acc, counter, time.time() - start_time))
 
                     # stop_stack += 1
                     # print('Stop Stack: {}/100, Iterations: {}'.format(stop_stack, counter))
