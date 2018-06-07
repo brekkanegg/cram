@@ -50,6 +50,7 @@ model_config = {'saliency': FLAGS.saliency,
                 'learning_rate': FLAGS.learning_rate,
                 'gt_seg': FLAGS.use_gt,
                 'zoption': FLAGS.zoption,
+                'x255': FLAGS.x255,
                 }
 
 model_dir = ['{}-{}'.format(key, model_config[key]) for key in sorted(model_config.keys())]
@@ -236,15 +237,17 @@ Initializing a new one...
                 summary_writer.add_summary(val_acc_sum, counter)
                 print("Validation Accuracy: {:.4f}".format(val_acc))
 
-                if cls_loss < min_val_loss:
+                # if cls_loss < min_val_loss:
+                if val_acc > max_val_acc:
                     min_val_loss = cls_loss
                     max_val_acc = val_acc
                     saver.save(sess, FLAGS.checkpoint_dir + '/{}.ckpt'.format(model.model_name))
                     print('Model saved at: {}/{}.ckpt'.format(FLAGS.checkpoint_dir, model.model_name))
+                    print('Max Val Accuracy: {}'.format(max_val_acc))
                     pprint.pprint(model_config)
                 else:
                     if a > max_val_acc + 0.15: ## overfitting
-                        sys.exit("Stop Training! Max Val Acc: {} Iteration: {} Time Spent: {:.4f}"
+                        sys.exit("Stop Training! Max Val Accuracy: {} Iteration: {} Time Spent: {:.4f}"
                                  .format(max_val_acc, counter, time.time() - start_time))
 
                     # stop_stack += 1
