@@ -79,6 +79,8 @@ with tf.Session(config=config) as sess:
     
     if FLAGS.dataset == 'cifar10':
         _dl = inputs.dataloader_cifar10
+    elif FLAGS.dataset == 'cifar100':
+        _dl = inputs.dataloader_cifar100
     # elif FLAGS.dataset == 'imagenet':
     #     _dl = inputs.dataloader_imagenet
     elif FLAGS.dataset == 'cub200':

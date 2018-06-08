@@ -14,6 +14,12 @@ issue: 이미지 스케일: 0-1
 feed_dict로 변경
 """
 
+def unpickle(file):
+    import pickle
+    with open(file, 'rb') as fo:
+        dict = pickle.load(fo, encoding='bytes')
+    return dict
+
 class base_saliency_model():
 
     def __init__(self, image_size, reuse):
@@ -220,6 +226,75 @@ class dataloader_cifar10(object):
 
 ###########
 
+
+class dataloader_cifar100(object):
+    def __init__(self, batch_size, saliency=False, mode='train',
+                 reuse=False, sep=False, x255=False, coarse_label=True):
+        self.saliency = saliency
+        self.mode = mode
+        self.image_size = 32
+        self.class_num = 100
+        self.sep = sep
+        self.x255 = x255
+
+        if mode == 'train': #or mode == 'control':
+            train = unpickle("data/cifar-100-python/train")
+            x = np.reshape(train[b'data'], [-1, 3, 32, 32])
+            x = x.transpose([0, 2, 3, 1])
+            y = train[b'fine_labels']
+            if coarse_label:
+                y = train[b'coarse_labels']
+
+        elif mode == 'val':
+            test = unpickle("data/cifar-100-python/test")
+            x = np.reshape(test[b'data'], [-1, 3, 32, 32])
+            x = x.transpose([0, 2, 3, 1])
+            y = test[b'fine_labels']
+            if coarse_label:
+                y = test[b'coarse_labels']
+
+        else:  # test, control
+            pass
+
+        self.x = x
+        # y = y[:, 0]
+        self.y = y
+
+        # y_one_hot = to_categorical(y, num_classes=self.class_num)
+        # self.y = y_one_hot
+
+        if saliency:
+            self.saliency_model = base_saliency_model(self.image_size, reuse=reuse)
+
+        self.batch_size = batch_size
+        self.data_count = x.shape[0]
+        self.num_batch = int(self.data_count / self.batch_size)
+        self.pointer = 0
+
+
+
+    def next_batch(self):
+        self.pointer = (self.pointer + 1) % self.num_batch
+
+        start_pos = self.pointer * self.batch_size
+
+        batch_images = self.x[start_pos:start_pos + self.batch_size]
+        batch_labels = self.y[start_pos:start_pos + self.batch_size]
+        if self.saliency:
+            batch_saliencies = self.saliency_model.get_saliency(batch_images)
+            if self.x255:
+                batch_saliencies *= 255
+            batch_images = np.concatenate([batch_images, batch_saliencies], axis=3)
+
+
+        return batch_images, batch_labels
+
+    def shuffle(self):
+        combined = list(zip(self.x, self.y))
+        random.shuffle(combined)
+        self.x, self.y = zip(*combined)
+
+###########
 class dataloader_cub200(object):
     def __init__(self, batch_size, saliency=False, mode='train', reuse=False, sep=False, x255=False):
         self.saliency = saliency
