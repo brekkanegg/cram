@@ -15,16 +15,18 @@ import inputs
 # Parameters
 flags = tf.app.flags
 flags.DEFINE_bool("is_training", True, "train/test")
-# fixme:
-flags.DEFINE_bool("is_control", False, "false")
 flags.DEFINE_bool("use_gt", False, "use ground truth segmentation")
 
-flags.DEFINE_string("dataset", "cub200", "willow, cub")
-flags.DEFINE_integer("zoption", 0, "option number")
+flags.DEFINE_string("dataset", "cifar10", "willow, cub")
+flags.DEFINE_integer("option", 0, "option number")
 
 flags.DEFINE_bool("saliency", False, "false")
 flags.DEFINE_bool("x255", False, "false")
 
+
+flags.DEFINE_integer("glimpse_num", 2, "number of glimpes")
+flags.DEFINE_integer("glimpse_size", 16, "size of glimpes")
+flags.DEFINE_integer("hidden", 100, "hidden dimension")
 
 flags.DEFINE_integer("epoch", 500, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 1e-3, "Learning rate of for adam")
@@ -47,11 +49,14 @@ flags.DEFINE_string("gpu", "1", "# of gpu to use"),
 FLAGS = flags.FLAGS
 
 model_config = {'saliency': FLAGS.saliency,
+                'x255': FLAGS.x255,
+                'glimpse_num': FLAGS.glimpse_num,
+                'glimpse_size': FLAGS.glimpse_size,
+                'hidden': FLAGS.hidden,
                 'dataset': FLAGS.dataset,
                 'learning_rate': FLAGS.learning_rate,
                 'gt_seg': FLAGS.use_gt,
-                'zoption': FLAGS.zoption,
-                'x255': FLAGS.x255,
+                'option': FLAGS.option,
                 }
 
 model_dir = ['{}-{}'.format(key, model_config[key]) for key in sorted(model_config.keys())]
@@ -101,7 +106,7 @@ with tf.Session(config=config) as sess:
     print('Train Data Counts: ', train_inputs.data_count)
     
     # Model
-    model = VGG(config=FLAGS, inputs=train_inputs)
+    model = SRAM(config=FLAGS, inputs=train_inputs)
     sess.run(tf.local_variables_initializer())
 
     # Try Loading Checkpoint
@@ -199,7 +204,7 @@ Initializing a new one...
             if np.mod(counter, print_step) == 1:
                 print("Epoch: [{:2d}] [{:4d}/{:4d}] [{:4d}] time: {:.4f}, "
                       "accuracy:  {:.4f} cls_loss: {:.6f}".format(
-                    epoch, idx, batch_idxs, counter, time.time() - start_time, a, l))
+                    epoch, idx, batch_idxs, counter-1, time.time() - start_time, a, l))
 
 
             # Save model and sample image files / summary as well

@@ -157,7 +157,8 @@ class base_saliency_model():
 ################
 
 class dataloader_cifar10(object):
-    def __init__(self, batch_size, saliency=False, mode='train', reuse=False, sep=False, x255=False):
+    def __init__(self, batch_size, saliency=False, mode='train',
+                 reuse=False, sep=False, x255=False):
         self.saliency = saliency
         self.mode = mode
         self.image_size = 32
@@ -165,29 +166,42 @@ class dataloader_cifar10(object):
         self.sep = sep
         self.x255 = x255
 
-        from tensorflow.python.keras._impl.keras.datasets.cifar10 import load_data
-        # if mode == 'train' or mode == 'control':
-        #     (x, y), (_, _) = load_data()
-        #     cut = int(len(x) * 0.8)
-        #     x, y = x[:cut], y[:cut]
-        #
-        # elif mode == 'val':
-        #     (x, y), (_, _) = load_data()
-        #     cut = int(len(x) * 0.8)
-        #     x, y = x[cut:], y[cut:]
-
         if mode == 'train': #or mode == 'control':
-            (x, y), (_, _) = load_data()
+            xs = {}
+            ys = {}
+            for i in range(1, 6):
+                train_i = unpickle("data/cifar-10-batches-py/data_batch_{}".format(i))
+                x_i = np.reshape(train_i[b'data'], [-1, 3, 32, 32])
+                x_i = x_i.transpose([0, 2, 3, 1])
+                y_i = train_i[b'labels']
+                xs[i] = x_i
+                ys[i] = y_i
+
+            x = np.concatenate([xs[i] for i in range(1, 6)])
+            y = np.concatenate([ys[i] for i in range(1, 6)])
+
 
         elif mode == 'val':
-            (_, _), (x, y) = load_data()
+            test = unpickle("data/cifar-10-batches-py/test_batch")
+            x = np.reshape(test[b'data'], [-1, 3, 32, 32])
+            x = x.transpose([0, 2, 3, 1])
+            y = test[b'labels']
 
-        else:  # test, control
-            (_, _), (x, y) = load_data()
+
+        # from tensorflow.python.keras._impl.keras.datasets.cifar10 import load_data
+        #
+        # if mode == 'train': #or mode == 'control':
+        #     (x, y), (_, _) = load_data()
+        #
+        # elif mode == 'val':
+        #     (_, _), (x, y) = load_data()
+        #
+        # else:  # test, control
+        #     (_, _), (x, y) = load_data()
 
 
         self.x = x
-        y = y[:, 0]
+        # y = y[:, 0]
         self.y = y
 
         # y_one_hot = to_categorical(y, num_classes=self.class_num)
@@ -229,7 +243,7 @@ class dataloader_cifar10(object):
 
 class dataloader_cifar100(object):
     def __init__(self, batch_size, saliency=False, mode='train',
-                 reuse=False, sep=False, x255=False, coarse_label=True):
+                 reuse=False, sep=False, x255=False, coarse_label=False):
         self.saliency = saliency
         self.mode = mode
         self.image_size = 32
