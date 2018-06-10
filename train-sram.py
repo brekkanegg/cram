@@ -44,7 +44,7 @@ flags.DEFINE_string("summary_dir", "summary", "save the summary")
 flags.DEFINE_integer("print_step", 100, "printing interval")
 flags.DEFINE_integer("save_step", 1000, "saving_interval")
 
-flags.DEFINE_string("gpu", "1", "# of gpu to use"),
+flags.DEFINE_string("gpu", "2", "# of gpu to use"),
 
 FLAGS = flags.FLAGS
 

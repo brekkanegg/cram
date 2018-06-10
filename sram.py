@@ -67,7 +67,7 @@ class SRAM(object):
             self.glimpse_patches.append(glimpse_patch)  # initial glimpse
 
             if self.saliency:  # rgbs or rgb
-                _saliency_glimpse_patch = tf.reshape(_glimpse_patch[:, :, :, -1], [-1, self.image_size, self.image_size, 1])
+                _saliency_glimpse_patch = tf.reshape(_glimpse_patch[:, :, :, -1], [-1, self.glimpse_size, self.glimpse_size, 1])
                 saliency_glimpse_patch = tf.image.convert_image_dtype(_saliency_glimpse_patch, dtype=tf.float32)  #
                 self.saliency_glimpse_patches = []
                 self.saliency_glimpse_patches.append(saliency_glimpse_patch)
@@ -140,10 +140,11 @@ class SRAM(object):
             self.saliency_sum = tf.summary.image("saliency", self.x_saliency, max_outputs=4)
 
         glimpses_concat = tf.concat(self.glimpse_patches, axis=0)
-        self.glimpses_sum = tf.summary.image("glimpses", glimpses_concat, max_outputs=4)
+        self.glimpses_sum = tf.summary.image("glimpses", glimpses_concat, max_outputs=int(4*self.glimpse_num))
         if self.saliency:
             saliency_glimpses_concat = tf.concat(self.saliency_glimpse_patches, axis=0)
-            self.saliency_glimpses_sum = tf.summary.image("saliency_glimpses", saliency_glimpses_concat, max_outputs=4)
+            self.saliency_glimpses_sum = tf.summary.image("saliency_glimpses", saliency_glimpses_concat,
+                                                          max_outputs=int(4*self.glimpse_num))
 
         self.cross_entropy_loss_sum = tf.summary.scalar("cross_entropy_loss", self.cross_entropy_loss)
         self.loss_sum = tf.summary.scalar("tot_loss", self.cross_entropy_loss)
