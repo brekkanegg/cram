@@ -24,18 +24,18 @@ flags.DEFINE_bool("saliency", False, "false")
 flags.DEFINE_bool("x255", False, "false")
 
 
-flags.DEFINE_integer("glimpse_num", 6, "number of glimpes")
-flags.DEFINE_integer("glimpse_size", 8, "size of glimpes")
-flags.DEFINE_integer("hidden", 256, "hidden dimension")
+flags.DEFINE_integer("gn", 6, "number of glimpes")
+flags.DEFINE_integer("gs", 8, "size of glimpes")
+flags.DEFINE_integer("h", 256, "hidden dimension")
 
 flags.DEFINE_integer("epoch", 20, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 1e-4, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
-flags.DEFINE_integer("batch_size", 64, "The size of batch images [32]")
+flags.DEFINE_integer("bs", 64, "The size of batch images [32]")
 
 flags.DEFINE_integer("max_to_keep", 5, "model number of max to keep")
-flags.DEFINE_bool("override", False, "Overriding checkpoint")
+flags.DEFINE_bool("ov", False, "Overriding checkpoint")
 
 flags.DEFINE_string("checkpoint_dir", "checkpoint", "Directory name to save the checkpoints [checkpoint]")
 flags.DEFINE_string("sample_dir", "sample", "save the image samples [samples]")
