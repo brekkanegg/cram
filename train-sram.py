@@ -24,12 +24,12 @@ flags.DEFINE_bool("saliency", False, "false")
 flags.DEFINE_bool("x255", False, "false")
 
 
-flags.DEFINE_integer("glimpse_num", 2, "number of glimpes")
-flags.DEFINE_integer("glimpse_size", 16, "size of glimpes")
-flags.DEFINE_integer("hidden", 100, "hidden dimension")
+flags.DEFINE_integer("glimpse_num", 6, "number of glimpes")
+flags.DEFINE_integer("glimpse_size", 8, "size of glimpes")
+flags.DEFINE_integer("hidden", 256, "hidden dimension")
 
-flags.DEFINE_integer("epoch", 500, "Epoch to train [25]")
-flags.DEFINE_float("learning_rate", 1e-3, "Learning rate of for adam")
+flags.DEFINE_integer("epoch", 20, "Epoch to train [25]")
+flags.DEFINE_float("learning_rate", 1e-4, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
 flags.DEFINE_integer("batch_size", 64, "The size of batch images [32]")

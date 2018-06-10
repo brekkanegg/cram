@@ -46,68 +46,69 @@ class SRAM(object):
 
         ## Encoder
 
-        # Network Parts
-        context_net = ContextNetwork(self.hidden)
-        # fixme: self.image_size or self.glimpse_size ???
-        st_net = MySpatialTransformerNetwork(self.hidden, out_size=[self.glimpse_size, self.glimpse_size],
-                                             glimpse_ratio=1.0)
+        with tf.variable_scope("sram"):
+            # Network Parts
+            context_net = ContextNetwork(self.hidden)
+            # fixme: self.image_size or self.glimpse_size ???
+            st_net = MySpatialTransformerNetwork(self.hidden, out_size=[self.glimpse_size, self.glimpse_size],
+                                                 glimpse_ratio=1.0)
 
-        glimpse_net = GlimpseNetwork(self.glimpse_size, self.hidden)
-        core_rnn = CoreRnn(self.hidden, st_net, glimpse_net)
+            glimpse_net = GlimpseNetwork(self.glimpse_size, self.hidden)
+            core_rnn = CoreRnn(self.hidden, st_net, glimpse_net)
 
-        # initial context
-        context = context_net(self.x, self.is_training, reuse=False)  # lstm_state_tuple: (c,h)
-        glimpse, theta = st_net(self.x, context.h, self.is_training, reuse=False)
+            # initial context
+            context = context_net(self.x, self.is_training, reuse=False)  # lstm_state_tuple: (c,h)
+            glimpse, theta = st_net(self.x, context.h, self.is_training, reuse=False)
 
-        _glimpse_patch = tf.nn.sigmoid(glimpse)  # sigmoid? tf.image.convert_image_dtype expect data range of [0,1)
-        glimpse_patch = tf.image.convert_image_dtype(_glimpse_patch[:, :, :, :3], dtype=tf.float32)  #
+            _glimpse_patch = tf.nn.sigmoid(glimpse)  # sigmoid? tf.image.convert_image_dtype expect data range of [0,1)
+            glimpse_patch = tf.image.convert_image_dtype(_glimpse_patch[:, :, :, :3], dtype=tf.float32)  #
 
-        self.glimpse_patches = []  # glimpse 총 숫자는 지정한 glimpse_num + 1(처음 glimpse)
-        self.glimpse_patches.append(glimpse_patch)  # initial glimpse
+            self.glimpse_patches = []  # glimpse 총 숫자는 지정한 glimpse_num + 1(처음 glimpse)
+            self.glimpse_patches.append(glimpse_patch)  # initial glimpse
 
-        if self.saliency:  # rgbs or rgb
-            _saliency_glimpse_patch = tf.reshape(_glimpse_patch[:, :, :, -1], [-1, self.image_size, self.image_size, 1])
-            saliency_glimpse_patch = tf.image.convert_image_dtype(_saliency_glimpse_patch, dtype=tf.float32)  #
-            self.saliency_glimpse_patches = []
-            self.saliency_glimpse_patches.append(saliency_glimpse_patch)
-
-        glimpse_vec = glimpse_net(glimpse, theta, self.is_training, reuse=False)  # initial glimpse
-
-
-        # core rnn
-        lstm_1 = None
-        lstm_2 = context
-
-        for i in range(self.glimpse_num):
-            print('Glimpse ', i)
-            if i == 0:
-                is_first = True
-                reuse = False
-            else:
-                is_first = False
-                reuse = True
-
-            lstm_1, lstm_2, glimpse_vec, glimpse = core_rnn(
-                self.x, glimpse_vec, lstm_1, lstm_2, is_first, self.is_training, reuse)
-
-            _glimpse_patch = tf.nn.sigmoid(glimpse)
-            glimpse_patch = tf.image.convert_image_dtype(_glimpse_patch[:, :, :, :3], dtype=tf.float32)
-            self.glimpse_patches.append(glimpse_patch)
-            if self.saliency:
+            if self.saliency:  # rgbs or rgb
                 _saliency_glimpse_patch = tf.reshape(_glimpse_patch[:, :, :, -1], [-1, self.image_size, self.image_size, 1])
-                saliency_glimpse_patch = tf.image.convert_image_dtype(_saliency_glimpse_patch, dtype=tf.float32)
-
+                saliency_glimpse_patch = tf.image.convert_image_dtype(_saliency_glimpse_patch, dtype=tf.float32)  #
+                self.saliency_glimpse_patches = []
                 self.saliency_glimpse_patches.append(saliency_glimpse_patch)
 
+            glimpse_vec = glimpse_net(glimpse, theta, self.is_training, reuse=False)  # initial glimpse
 
-        # try standardization before decoding
-        self.z = lstm_1.outputs
-        # mu, std = tf.nn.moments(self.z, axes=0)
-        # self.z = (self.z - mu) / std
 
-        classification_net = ClassificationNetwork(self.hidden, self.class_num)
+            # core rnn
+            lstm_1 = None
+            lstm_2 = context
 
-        self.logits = classification_net(self.z, self.is_training, reuse=False)
+            for i in range(self.glimpse_num):
+                print('Glimpse ', i)
+                if i == 0:
+                    is_first = True
+                    reuse = False
+                else:
+                    is_first = False
+                    reuse = True
+
+                lstm_1, lstm_2, glimpse_vec, glimpse = core_rnn(
+                    self.x, glimpse_vec, lstm_1, lstm_2, is_first, self.is_training, reuse)
+
+                _glimpse_patch = tf.nn.sigmoid(glimpse)
+                glimpse_patch = tf.image.convert_image_dtype(_glimpse_patch[:, :, :, :3], dtype=tf.float32)
+                self.glimpse_patches.append(glimpse_patch)
+                if self.saliency:
+                    _saliency_glimpse_patch = tf.reshape(_glimpse_patch[:, :, :, -1], [-1, self.image_size, self.image_size, 1])
+                    saliency_glimpse_patch = tf.image.convert_image_dtype(_saliency_glimpse_patch, dtype=tf.float32)
+
+                    self.saliency_glimpse_patches.append(saliency_glimpse_patch)
+
+
+            # try standardization before decoding
+            self.z = lstm_1.outputs
+            # mu, std = tf.nn.moments(self.z, axes=0)
+            # self.z = (self.z - mu) / std
+
+            classification_net = ClassificationNetwork(self.hidden, self.class_num)
+
+            self.logits = classification_net(self.z, self.is_training, reuse=False)
 
 
 
@@ -119,12 +120,14 @@ class SRAM(object):
         self.accuracy = tf.metrics.accuracy(labels=self.y,
                                             predictions=tf.argmax(self.logits, axis=1))[1]
         self.optimizer = tf.train.AdamOptimizer(self.learning_rate, beta1=self.config.beta1)
-        self.train_op = self.optimizer.minimize(self.cross_entropy_loss)
 
+        # self.train_op = self.optimizer.minimize(self.cross_entropy_loss)
 
-        
-
-
+        # fixme: grad is None?
+        sram_vars = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='sram')
+        gvs = self.optimizer.compute_gradients(self.cross_entropy_loss, var_list=sram_vars)
+        capped_gvs = [(tf.clip_by_value(grad, -5., 5.), var) for grad, var in gvs]
+        self.train_op = self.optimizer.apply_gradients(capped_gvs)
 
     def merge_summary(self):
 
@@ -172,9 +175,12 @@ class SmallCnn(object):
                                     activation_fn=tf.nn.elu, updates_collections=None, is_training=is_training):
 
                     for i in range(len(self.n_filters)):
+                        net = slim.conv2d(net, self.n_filters[i], 3, stride=1, padding='SAME',
+                                          scope='{}_conv1_{}'.format(self.part, i))
+                        net = slim.batch_norm(net, scope='{}_bn1_{}'.format(self.part, i))
                         net = slim.conv2d(net, self.n_filters[i], 3, stride=2, padding='SAME',
-                                          scope='{}_conv_{}'.format(self.part, i))
-                        net = slim.batch_norm(net, scope='{}_bn_{}'.format(self.part, i))
+                                          scope='{}_conv2_{}'.format(self.part, i))
+                        net = slim.batch_norm(net, scope='{}_bn2_{}'.format(self.part, i))
 
                     net = slim.flatten(net, scope='{}_flatten'.format(self.part))
                     net = slim.fully_connected(net, self.hidden, scope='{}_fc_{}'.format(self.part, i+1))
@@ -200,11 +206,9 @@ class ContextNetwork(object):
 
             net = img_small_cnn(low_image, is_training=is_training, reuse=reuse, use_dilation=False)
 
-            with slim.arg_scope([slim.conv2d, slim.fully_connected], activation_fn=None,
+            with slim.arg_scope([slim.fully_connected], activation_fn=None,
                                 weights_initializer=tf.contrib.layers.xavier_initializer(),
                                 weights_regularizer=slim.l2_regularizer(0.001)):
-                with slim.arg_scope([slim.batch_norm], decay=0.95, center=True, scale=True,
-                                    activation_fn=tf.nn.elu, updates_collections=None, is_training=is_training):
 
                     context_c = slim.fully_connected(net, self.hidden, scope='c_fc')
                     context_h = slim.fully_connected(net, self.hidden, scope='h_fc')
@@ -235,14 +239,12 @@ class MySpatialTransformerNetwork(object):
     - `TensorFlow/Models <https://github.com/tensorflow/models/tree/master/transformer>`_
     """
 
-    def __init__(self, hidden, out_size=[40, 40], glimpse_ratio=1.0):
+    def __init__(self, hidden, n_filters=[16, 32, 64], out_size=[40, 40], glimpse_ratio=1.0):
         # Layer.__init__(self, name='spatial_trans_2d_affine')
         self.hidden = hidden
         self.out_size = out_size
         self.glimpse_ratio = glimpse_ratio
-
-        print("  [TL] SpatialTransformer2dAffineLayer %s: out_size:%s" %
-              ('spatial_trans_2d_affine', self.out_size))
+        self.n_filters = n_filters
 
     def __call__(self, images, rnn2_outputs, is_training, reuse):
         print('Spatial Transformer Network')
@@ -254,21 +256,24 @@ class MySpatialTransformerNetwork(object):
             #     self.theta_layer.outputs = flatten_reshape(self.theta_layer.outputs, 'flatten')
 
             _image = self.images
-            n_filters = [8, 16, 32]
             with slim.arg_scope([slim.conv2d, slim.fully_connected],
-                                activation_fn=tf.nn.elu,
+                                activation_fn=None,
                                 weights_initializer=tf.contrib.layers.xavier_initializer(),
-                                weights_regularizer=slim.l2_regularizer(0.001),
-                                normalizer_fn=slim.batch_norm,
-                                normalizer_params={'is_training': is_training},
-                                ):
-                for i in range(len(n_filters)):
-                    _image = slim.conv2d(_image, n_filters[i], 5, stride=2, padding='SAME',
-                                      scope='iloc_conv' + str(i))
+                                weights_regularizer=slim.l2_regularizer(0.001)):
+                with slim.arg_scope([slim.batch_norm], decay=0.95, center=True, scale=True,
+                                    activation_fn=tf.nn.elu, updates_collections=None, is_training=is_training):
 
-                _image = slim.fully_connected(_image, int(self.hidden/2), scope='iloc_fc1')
-                _image = slim.fully_connected(_image, 10, activation_fn=None, normalizer_fn=None, scope='iloc_fc2')  # no activation
-                _image = slim.flatten(_image)
+                    for i in range(len(self.n_filters)):
+                        _image = slim.conv2d(_image, self.n_filters[i], 3, stride=1, padding='SAME',
+                                          scope='iloc_conv1_' + str(i))
+                        _image = slim.batch_norm(_image, scope='iloc_bn1' + str(i))
+                        _image = slim.conv2d(_image, self.n_filters[i], 3, stride=2, padding='SAME',
+                                          scope='iloc_conv2_' + str(i))
+
+                    _image = slim.flatten(_image, scope='iloc_flatten')
+                    _image = slim.fully_connected(_image, int(self.hidden/2), scope='iloc_fc_{}'.format(i+1))
+                    _image = slim.batch_norm(_image, scope='iloc_bn_{}'.format(i+1))
+                    _image = slim.fully_connected(_image, int(self.hidden/2), scope='iloc_fc_{}'.format(i+2))
 
             _rnn2 = rnn2_outputs
             with slim.arg_scope([slim.fully_connected],
@@ -277,9 +282,11 @@ class MySpatialTransformerNetwork(object):
                                 normalizer_fn=slim.batch_norm,
                                 normalizer_params={'is_training': is_training}
                                 ):
-                _rnn2 = slim.fully_connected(_rnn2, int(self.hidden/2), scope='rloc_fc1')
-                _rnn2 = slim.fully_connected(_rnn2, 20, activation_fn=None, normalizer_fn=None, scope='rloc_fc2')
-                _rnn2 = slim.flatten(_rnn2)
+                with slim.arg_scope([slim.batch_norm], decay=0.95, center=True, scale=True,
+                                    activation_fn=tf.nn.elu, updates_collections=None, is_training=is_training):
+                    _rnn2 = slim.fully_connected(_rnn2, int(self.hidden/2), scope='rloc_fc1')
+                    _rnn2 = slim.batch_norm(_rnn2, scope='rloc_bn1')
+                    _rnn2 = slim.fully_connected(_rnn2, int(self.hidden/2), scope='rloc_fc2')
 
             self._theta = tf.concat([_image, _rnn2], axis=1) # concat above
 
@@ -291,6 +298,7 @@ class MySpatialTransformerNetwork(object):
             shape = (n_in, 6)
             W = tf.get_variable(name='W', initializer=tf.zeros(shape)) #, dtype=D_TYPE)
             # 2.2 b
+            # fixme:
             identity = tf.constant(np.array([[self.glimpse_ratio, 0, 0], [0, self.glimpse_ratio, 0]]).astype('float32').flatten())
             b = tf.get_variable(name='b', initializer=identity) #, dtype=D_TYPE)
             # 2.3 transformation matrix
@@ -341,9 +349,11 @@ class GlimpseNetwork(object):
                     net = glimpse
 
                     for i in range(len(self.n_filters)):
+                        net = slim.conv2d(net, self.n_filters[i], 3, stride=1, padding='SAME',
+                                          scope='conv1_' + str(i))
                         net = slim.conv2d(net, self.n_filters[i], 3, stride=2, padding='SAME',
-                                          scope='conv' + str(i))
-                        net = slim.batch_norm(net, scope='conv_bn' + str(i))
+                                          scope='conv2_' + str(i))
+                        net = slim.batch_norm(net, scope='conv_bn_' + str(i))
 
                     net = slim.flatten(net)
 
