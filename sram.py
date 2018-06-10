@@ -95,7 +95,8 @@ class SRAM(object):
                 glimpse_patch = tf.image.convert_image_dtype(_glimpse_patch[:, :, :, :3], dtype=tf.float32)
                 self.glimpse_patches.append(glimpse_patch)
                 if self.saliency:
-                    _saliency_glimpse_patch = tf.reshape(_glimpse_patch[:, :, :, -1], [-1, self.image_size, self.image_size, 1])
+                    _saliency_glimpse_patch = tf.reshape(_glimpse_patch[:, :, :, -1],
+                                                         [-1, self.glimpse_size, self.glimpse_size, 1])
                     saliency_glimpse_patch = tf.image.convert_image_dtype(_saliency_glimpse_patch, dtype=tf.float32)
 
                     self.saliency_glimpse_patches.append(saliency_glimpse_patch)
