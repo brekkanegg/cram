@@ -32,7 +32,7 @@ flags.DEFINE_integer("epoch", 500, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 1e-3, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
-flags.DEFINE_integer("batch_size", 32, "The size of batch images [32]")
+flags.DEFINE_integer("batch_size", 64, "The size of batch images [32]")
 
 flags.DEFINE_integer("max_to_keep", 5, "model number of max to keep")
 flags.DEFINE_bool("override", False, "Overriding checkpoint")
@@ -245,6 +245,7 @@ Initializing a new one...
                 ])
                 summary_writer.add_summary(val_acc_sum, counter)
                 print("Validation Accuracy: {:.4f}".format(val_acc))
+                print('Max Val Accuracy: {:.4f}'.format(max_val_acc))
 
                 # if cls_loss < min_val_loss:
                 if val_acc > max_val_acc:
@@ -252,7 +253,7 @@ Initializing a new one...
                     max_val_acc = val_acc
                     saver.save(sess, FLAGS.checkpoint_dir + '/{}.ckpt'.format(model.model_name))
                     print('Model saved at: {}/{}.ckpt'.format(FLAGS.checkpoint_dir, model.model_name))
-                    print('Max Val Accuracy: {}'.format(max_val_acc))
+                    print('Max Val Accuracy: {:.4f}'.format(max_val_acc))
                     pprint.pprint(model_config)
                 # else:
                 #     if a > max_val_acc + 0.5: ## overfitting
