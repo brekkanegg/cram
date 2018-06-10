@@ -28,7 +28,7 @@ flags.DEFINE_integer("gn", 6, "number of glimpes")
 flags.DEFINE_integer("gs", 8, "size of glimpes")
 flags.DEFINE_integer("h", 256, "hidden dimension")
 
-flags.DEFINE_integer("epoch", 20, "Epoch to train [25]")
+flags.DEFINE_integer("epoch", 100, "Epoch to train [25]")
 flags.DEFINE_float("lr", 1e-4, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
