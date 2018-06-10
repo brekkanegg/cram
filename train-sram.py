@@ -20,7 +20,7 @@ flags.DEFINE_bool("use_gt", False, "use ground truth segmentation")
 flags.DEFINE_string("dataset", "cifar10", "willow, cub")
 flags.DEFINE_integer("option", 0, "option number")
 
-flags.DEFINE_bool("saliency", False, "false")
+flags.DEFINE_bool("sal", False, "false")
 flags.DEFINE_bool("x255", False, "false")
 
 
@@ -29,7 +29,7 @@ flags.DEFINE_integer("gs", 8, "size of glimpes")
 flags.DEFINE_integer("h", 256, "hidden dimension")
 
 flags.DEFINE_integer("epoch", 20, "Epoch to train [25]")
-flags.DEFINE_float("learning_rate", 1e-4, "Learning rate of for adam")
+flags.DEFINE_float("lr", 1e-4, "Learning rate of for adam")
 flags.DEFINE_float("beta1", 0.9, "Momentum term of adam [0.5]")
 
 flags.DEFINE_integer("bs", 64, "The size of batch images [32]")
@@ -48,13 +48,13 @@ flags.DEFINE_string("gpu", "1", "# of gpu to use"),
 
 FLAGS = flags.FLAGS
 
-model_config = {'saliency': FLAGS.saliency,
+model_config = {'saliency': FLAGS.sal,
                 'x255': FLAGS.x255,
-                'glimpse_num': FLAGS.glimpse_num,
-                'glimpse_size': FLAGS.glimpse_size,
-                'hidden': FLAGS.hidden,
+                'glimpse_num': FLAGS.gn,
+                'glimpse_size': FLAGS.gs,
+                'hidden': FLAGS.h,
                 'dataset': FLAGS.dataset,
-                'learning_rate': FLAGS.learning_rate,
+                'learning_rate': FLAGS.lr,
                 'gt_seg': FLAGS.use_gt,
                 'option': FLAGS.option,
                 }
@@ -63,7 +63,7 @@ model_dir = ['{}-{}'.format(key, model_config[key]) for key in sorted(model_conf
 model_dir = '/'.join(model_dir)
 print('CONFIG: ')
 pprint.pprint(model_config)
-print('Override: ', FLAGS.override)
+print('Override: ', FLAGS.ov)
 FLAGS.checkpoint_dir = os.path.join(FLAGS.checkpoint_dir, model_dir)
 FLAGS.sample_dir = os.path.join(FLAGS.sample_dir, model_dir)
 FLAGS.summary_dir = os.path.join(FLAGS.summary_dir, model_dir)
@@ -93,15 +93,15 @@ with tf.Session(config=config) as sess:
         _dl = inputs.dataloader_cub200
 
     # if FLAGS.is_control:
-    #     train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='control')
+    #     train_inputs = _dl(FLAGS.bs, saliency=True, mode='control')
 
     if FLAGS.use_gt:
-        train_inputs = _dl(FLAGS.batch_size, saliency=True, mode='gt', x255=FLAGS.x255)
-        val_inputs = _dl(FLAGS.batch_size, saliency=True, mode='val', reuse=False, x255=FLAGS.x255)
+        train_inputs = _dl(FLAGS.bs, saliency=True, mode='gt', x255=FLAGS.x255)
+        val_inputs = _dl(FLAGS.bs, saliency=True, mode='val', reuse=False, x255=FLAGS.x255)
 
     else:
-        train_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='train', reuse=False, x255=FLAGS.x255)
-        val_inputs = _dl(FLAGS.batch_size, saliency=FLAGS.saliency, mode='val', reuse=True, x255=FLAGS.x255)
+        train_inputs = _dl(FLAGS.bs, saliency=FLAGS.sal, mode='train', reuse=False, x255=FLAGS.x255)
+        val_inputs = _dl(FLAGS.bs, saliency=FLAGS.sal, mode='val', reuse=True, x255=FLAGS.x255)
 
     print('Train Data Counts: ', train_inputs.data_count)
     
@@ -114,7 +114,7 @@ with tf.Session(config=config) as sess:
     print(" [*] Reading Checkpoint...")
     ckpt = tf.train.get_checkpoint_state(FLAGS.checkpoint_dir)
 
-    if ckpt and ckpt.model_checkpoint_path and not FLAGS.override:  # retrain
+    if ckpt and ckpt.model_checkpoint_path and not FLAGS.ov:  # retrain
         saver = tf.train.Saver(max_to_keep=FLAGS.max_to_keep)
         t1 = time.time()
         saver.restore(sess, ckpt.model_checkpoint_path)
@@ -162,21 +162,21 @@ Initializing a new one...
     max_val_acc = 0
     stop_stack = 0
 
-    batch_idxs = int(train_inputs.data_count // FLAGS.batch_size)
+    batch_idxs = int(train_inputs.data_count // FLAGS.bs)
     for epoch in range(FLAGS.epoch):
         # if np.mod(epoch, 10) == 1 and epoch != 1:
         #     FLAGS.learning_rate *= 0.3
         #     print('Learning Rate Decreased to: ', FLAGS.learning_rate)
 
         if epoch == 100:
-            FLAGS.learning_rate *= 1e-1
-            print('Learning Rate Decreased to: ', FLAGS.learning_rate)
+            FLAGS.lr *= 1e-1
+            print('Learning Rate Decreased to: ', FLAGS.lr)
         if epoch == 200:
-            FLAGS.learning_rate *= 1e-1
-            print('Learning Rate Decreased to: ', FLAGS.learning_rate)
+            FLAGS.lr *= 1e-1
+            print('Learning Rate Decreased to: ', FLAGS.lr)
         if epoch == 300:
-            FLAGS.learning_rate *= 1e-1
-            print('Learning Rate Decreased to: ', FLAGS.learning_rate)
+            FLAGS.lr *= 1e-1
+            print('Learning Rate Decreased to: ', FLAGS.lr)
 
 
 
@@ -216,7 +216,7 @@ Initializing a new one...
                 cls_loss = 0
                 predictions = []
                 labels = []
-                val_batch_idxs = int(val_inputs.data_count // FLAGS.batch_size)
+                val_batch_idxs = int(val_inputs.data_count // FLAGS.bs)
                 for vi in range(0, val_batch_idxs):
 
                     # fixme

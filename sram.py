@@ -20,7 +20,7 @@ class SRAM(object):
         self.image_shape = [self.image_size, self.image_size]
         self.class_num = inputs.class_num
 
-        self.saliency = config.saliency
+        self.saliency = config.sal
         if self.saliency:  # rgbs or rgb
             self.x = tf.placeholder(tf.float32, shape=[None, self.image_size, self.image_size, 4], name='x')
         else:
@@ -30,9 +30,9 @@ class SRAM(object):
         self.is_training = tf.placeholder(tf.bool, name='is_training')
         self.learning_rate = tf.placeholder(tf.float32, name='learning_rate')
 
-        self.glimpse_num = config.glimpse_num
-        self.glimpse_size = config.glimpse_size
-        self.hidden = config.hidden
+        self.glimpse_num = config.gn
+        self.glimpse_size = config.gs
+        self.hidden = config.h
 
         self.model_name = "SRAM-{}.model"
 
