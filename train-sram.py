@@ -197,7 +197,7 @@ Initializing a new one...
 
             l, a, s, _ = sess.run([model.cross_entropy_loss, model.accuracy, model.summary_merge, model.train_op],
                                   feed_dict={model.x: batch_xs, model.y: batch_ys, model.is_training: True,
-                                             model.learning_rate: FLAGS.learning_rate})
+                                             model.learning_rate: FLAGS.lr})
             counter += 1
 
             # print
